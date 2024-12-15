@@ -1,0 +1,114 @@
+---
+- name: Pull Prometheus Push Gateway image
+  ansible.builtin.docker_image:
+    name: docker.arvancloud.ir/prom/pushgateway:latest
+    source: pull
+
+- name: Run Prometheus Push Gateway container
+  ansible.builtin.docker_container:
+    name: prometheus_pushgateway
+    image: docker.arvancloud.ir/prom/pushgateway:latest
+    state: started
+    published_ports:
+      - "9091:9091"
+    network_mode: host        
+
+- name: Ensure /etc/prometheus/ exists
+  ansible.builtin.file:
+    path: /etc/prometheus/
+    state: directory
+    mode: '0755'
+
+- name: Copy prometheus configuration
+  ansible.builtin.copy:
+    src: roles/monitoring/files/prometheus.yml
+    dest: /etc/prometheus/prometheus.yml
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Pull Prometheus image
+  ansible.builtin.docker_image:
+    name: docker.arvancloud.ir/prom/prometheus:latest
+    source: pull
+
+- name: Run Prometheus container
+  ansible.builtin.docker_container:
+    name: prometheus
+    image: docker.arvancloud.ir/prom/prometheus:latest
+    state: started
+    published_ports:
+      - "9090:9090"
+    network_mode: host        
+    volumes:
+      - /etc/prometheus/:/etc/prometheus/
+    restart_policy: always        
+
+- name: Ensure /etc/alertmanager/ exists
+  ansible.builtin.file:
+    path: /etc/alertmanager/
+    state: directory
+    mode: '0755'
+
+- name: Copy Alert Manager configuration
+  ansible.builtin.copy:
+    src: roles/monitoring/files/alertmanager.yml
+    dest: /etc/alertmanager/alertmanager.yml
+    owner: root
+    group: root
+    mode: '0644'
+        
+        
+- name: Pull Prometheus Alert Manager image
+  ansible.builtin.docker_image:
+    name: docker.arvancloud.ir/prom/alertmanager:latest
+    source: pull
+
+- name: Run Prometheus Alert Manager container
+  ansible.builtin.docker_container:
+    name: alertmanager
+    image: docker.arvancloud.ir/prom/alertmanager:latest
+    state: started
+    recreate: true      
+    published_ports:
+      - "9093:9093"
+    network_mode: host        
+    volumes:
+      - /etc/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    env:
+      CONFIG_FILE: "/etc/alertmanager/alertmanager.yml"        
+
+
+- name: Restart Alert Manager container to apply new configuration
+  ansible.builtin.docker_container:
+    name: alertmanager
+    state: started        
+
+
+
+- name: Copy health check script to host
+  ansible.builtin.copy:
+    src: roles/monitoring/files/health_check.py
+    dest: /opt/health_check.py
+
+- name: Create Dockerfile for health checker
+  ansible.builtin.template:
+    src: roles/monitoring/templates/Dockerfile.j2
+    dest: /opt/Dockerfile
+
+- name: Build Docker image for health checker
+  ansible.builtin.command:
+    cmd: docker build -t health-checker /opt
+  args:
+    chdir: /opt
+
+- name: Run health check container
+  ansible.builtin.docker_container:
+    name: health-checker
+    image: health-checker
+    network_mode: host
+    state: started
+    restart_policy: always
+    env:
+      PUSHGATEWAY_URL: "http://localhost:9091/metrics/job/web_health_check"
+      WEB_SERVERS: "http://localhost:80"

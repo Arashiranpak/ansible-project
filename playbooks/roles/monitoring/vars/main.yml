@@ -1,0 +1,3 @@
+alertmanager_receiver: 'webhook'
+webhook_url: 'http://localhost:5000/webhook'
+

@@ -1,0 +1,10 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+COPY health_check.py /app/health_check.py
+
+RUN pip install requests
+
+CMD ["python", "/app/health_check.py"]
+

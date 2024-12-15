@@ -1,0 +1,12 @@
+all:
+  hosts:
+    server1:
+      ansible_host: server1
+      ansible_user: ubuntu
+    server2:
+      ansible_host: server2
+      ansible_user: ubuntu
+    server3:
+      ansible_host: server3
+      ansible_user: ubuntu
+

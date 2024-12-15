@@ -1,0 +1,8 @@
+---
+- name: Main playbook
+  hosts: all
+  become: yes
+  roles:
+    - webserver
+    - monitoring
+    - recovery      

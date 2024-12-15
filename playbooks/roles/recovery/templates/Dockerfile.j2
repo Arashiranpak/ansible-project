@@ -1,0 +1,11 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+COPY webhook_handler.py /app/webhook_handler.py
+
+RUN pip install flask
+
+CMD ["python", "/app/webhook_handler.py"]
+
+#

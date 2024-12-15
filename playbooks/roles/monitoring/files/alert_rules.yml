@@ -1,0 +1,12 @@
+groups:
+  - name: nginx_health_alerts
+    rules:
+      - alert: WebServerDown
+        expr: web_health_check == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Web server is down"
+          description: "The web server {{ $labels.instance }} is not responding for 1 minute."
+

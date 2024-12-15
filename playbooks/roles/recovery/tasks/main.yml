@@ -1,0 +1,31 @@
+---
+    - name: Ensure /app directory exists
+      ansible.builtin.file:
+        path: /app
+        state: directory
+        mode: '0755'
+    - name: Copy webhook handler script to target host
+      ansible.builtin.copy:
+        src: roles/recovery/files/webhook_handler.py
+        dest: /app/webhook_handler.py
+
+    - name: Create Dockerfile for webhook handler
+      ansible.builtin.template:
+        src: roles/recovery/templates/Dockerfile.j2
+        dest: /app/Dockerfile
+
+    - name: Build Docker image for webhook handler
+      ansible.builtin.command:
+        cmd: docker build -t webhook-handler /app
+      args:
+        chdir: /app
+
+    - name: Run webhook handler container
+      ansible.builtin.docker_container:
+        name: webhook-handler
+        image: webhook-handler
+        state: started
+        restart_policy: always
+        published_ports:
+          - "5000:5000"
+
